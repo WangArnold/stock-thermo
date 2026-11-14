@@ -1,0 +1,32 @@
+name: 每日更新股市資料
+
+on:
+  schedule:
+    # GitHub 用 UTC 時間；台灣時間 = UTC + 8
+    - cron: "0 8 * * 1-5"    # 台灣時間 週一～五 16:00（台股收盤、法人資料公布後）
+    - cron: "30 22 * * 1-5"  # 台灣時間 週二～六 06:30（美股收盤後）
+  workflow_dispatch:          # 允許手動按按鈕執行
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 抓取資料
+        run: python fetch_data.py
+
+      - name: 存檔並上傳
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add data.json
+          git diff --cached --quiet || git commit -m "更新資料 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+          git push
